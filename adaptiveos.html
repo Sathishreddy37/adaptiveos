@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>AdaptiveOS — Your Life. Coordinated by AI.</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a12;
+      --bg2: #11111f;
+      --panel: #151527;
+      --border: #2a2a45;
+      --text: #f0f0fa;
+      --muted: #a0a0c0;
+      --accent: #7c6cff;
+      --accent2: #00e0c8;
+      --pink: #ff5fa2;
+      --orange: #ffb35c;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg: #f6f6fb;
+        --bg2: #ffffff;
+        --panel: #ffffff;
+        --border: #e2e2f0;
+        --text: #15152a;
+        --muted: #5a5a75;
+      }
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f6f6fb;
+      --bg2: #ffffff;
+      --panel: #ffffff;
+      --border: #e2e2f0;
+      --text: #15152a;
+      --muted: #5a5a75;
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    header {
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(10, 10, 18, 0.7);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    nav a {
+      font-size: .85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color .2s;
+    }
+
+    nav a:hover {
+      color: var(--text);
+    }
+
+    .app-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0a0a12 !important;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+    }
+
+    #hero {
+      position: relative;
+      height: 92vh;
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    #canvas3d {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #canvas3d:active {
+      cursor: grabbing;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 2;
+      max-width: 720px;
+      padding: 0 20px;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: .7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      background: rgba(0, 224, 200, .08);
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 3.6rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -1px;
+    }
+
+    h1 .grad {
+      background: linear-gradient(90deg, var(--accent), var(--pink));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin-top: 16px;
+      font-size: 1.05rem;
+    }
+
+    .hero-actions {
+      margin-top: 24px;
+      pointer-events: auto;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--pink));
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(124, 108, 255, 0.4);
+      transition: transform .2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .hint {
+      position: absolute;
+      bottom: 24px;
+      font-size: .75rem;
+      color: var(--muted);
+      z-index: 2;
+    }
+
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 70px 24px;
+    }
+
+    .sec-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      margin-bottom: 8px;
+    }
+
+    .sec-sub {
+      color: var(--muted);
+      margin-bottom: 32px;
+      max-width: 620px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .g5 {
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    .g7 {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      transition: transform .2s, border-color .2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+
+    .card .ic {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .card h3 {
+      font-size: .98rem;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: .82rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .loop {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .pill {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+
+    .arrow {
+      color: var(--accent2);
+      font-size: .9rem;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 26px;
+      border-left: 2px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .tstep {
+      position: relative;
+    }
+
+    .tstep::before {
+      content: "";
+      position: absolute;
+      left: -32px;
+      top: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent2);
+    }
+
+    .tstep b {
+      font-size: .9rem;
+    }
+
+    .tstep p {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .stack span {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: .82rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 24px calc(40px + env(safe-area-inset-bottom, 0px));
+      color: var(--muted);
+      font-size: .82rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .overflow-x {
+      overflow-x: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">Adaptive<span>OS</span></div>
+    <nav>
+      <a href="#agents">Agents</a>
+      <a href="#features">Features</a>
+      <a href="#scenario">Scenario</a>
+      <a href="#stack">Stack</a>
+      <a href="http://localhost:5173" class="app-btn" target="_blank">Launch App 🚀</a>
+    </nav>
+  </header>
+
+  <section id="hero" style="padding:0;">
+    <canvas id="canvas3d"></canvas>
+    <div class="hero-copy">
+      <span class="eyebrow">Agentic AI · Life Coordination</span>
+      <h1>Your Life. <span class="grad">Coordinated by AI.</span><br>Supported by People.</h1>
+      <p class="sub">AdaptiveOS is a multi-agent system that perceives, reasons, replans and confirms — a living 3D
+        network of agents, drag to explore.</p>
+      <div class="hero-actions">
+        <a href="http://localhost:5173" class="btn-primary" target="_blank">Open AdaptiveOS App</a>
+        <a href="#scenario" class="btn-secondary">View 4:00 PM Scenario</a>
+      </div>
+    </div>
+    <div class="hint">🖱️ drag to rotate · scroll to zoom</div>
+  </section>
+
+  <section id="agents">
+    <div class="sec-title">The Agent Workflow</div>
+    <p class="sec-sub">Seven specialized agents run a continuous control loop: Plan → Execute → Observe → Reason →
+      Replan → Confirm → Learn.</p>
+    <div class="grid g7">
+      <div class="card"><span class="ic">🧭</span>
+        <h3>Planning</h3>
+        <p>Creates the initial plan from goals & preferences.</p>
+      </div>
+      <div class="card"><span class="ic">🎯</span>
+        <h3>Priority</h3>
+        <p>Weighs urgency vs importance and deadlines.</p>
+      </div>
+      <div class="card"><span class="ic">⏱️</span>
+        <h3>Time</h3>
+        <p>Estimates duration and checks availability.</p>
+      </div>
+      <div class="card"><span class="ic">⚠️</span>
+        <h3>Conflict</h3>
+        <p>Detects clashes and protects sleep & health.</p>
+      </div>
+      <div class="card"><span class="ic">🔄</span>
+        <h3>Adaptation</h3>
+        <p>Replans the schedule when things change.</p>
+      </div>
+      <div class="card"><span class="ic">📈</span>
+        <h3>Learning</h3>
+        <p>Learns patterns and personalizes over time.</p>
+      </div>
+      <div class="card"><span class="ic">🎙️</span>
+        <h3>Voice / Human</h3>
+        <p>Handles voice, family input & notifications.</p>
+      </div>
+    </div>
+    <div class="loop">
+      <span class="pill">PLAN</span><span class="arrow">→</span><span class="pill">EXECUTE</span><span
+        class="arrow">→</span>
+      <span class="pill">OBSERVE</span><span class="arrow">→</span><span class="pill">REASON</span><span
+        class="arrow">→</span>
+      <span class="pill">REPLAN</span><span class="arrow">→</span><span class="pill">CONFIRM</span><span
+        class="arrow">→</span>
+      <span class="pill">LEARN</span><span class="arrow">↻</span>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="sec-title">Product Surfaces</div>
+    <p class="sec-sub">Home → Schedule → AI Assistant → Trusted People → Voice.</p>
+    <div class="grid g5">
+      <div class="card"><span class="ic">🏠</span>
+        <h3>Home</h3>
+        <p>Today's priorities, current task, progress & AI suggestions.</p>
+      </div>
+      <div class="card"><span class="ic">📅</span>
+        <h3>Adaptive Schedule</h3>
+        <p>A timeline that visibly rearranges itself as things change.</p>
+      </div>
+      <div class="card"><span class="ic">🤖</span>
+        <h3>AI Assistant</h3>
+        <p>Type or speak — it replans and explains what changed.</p>
+      </div>
+      <div class="card"><span class="ic">👨👩👦</span>
+        <h3>Family & Trusted</h3>
+        <p>Mom, Dad, mentor — added with scoped permissions only.</p>
+      </div>
+      <div class="card"><span class="ic">🎙️</span>
+        <h3>Voice</h3>
+        <p>"Move my study session to tomorrow" — understood, replanned, confirmed.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="scenario">
+    <div class="sec-title">Example: A Real-Life Change</div>
+    <p class="sec-sub">4:00 PM — a surprise assignment arrives, due tomorrow.</p>
+    <div class="timeline">
+      <div class="tstep"><b>4:01 PM — Detect</b>
+        <p>AI detects the new deadline is tomorrow.</p>
+      </div>
+      <div class="tstep"><b>4:02 PM — Prioritize</b>
+        <p>Priority Agent raises its urgency.</p>
+      </div>
+      <div class="tstep"><b>4:03 PM — Conflict Check</b>
+        <p>Conflict Agent finds it overlaps with project work.</p>
+      </div>
+      <div class="tstep"><b>4:04 PM — Adapt</b>
+        <p>Adaptation Agent moves the project block.</p>
+      </div>
+      <div class="tstep"><b>4:05 PM — Protect</b>
+        <p>System confirms sleep isn't sacrificed.</p>
+      </div>
+      <div class="tstep"><b>4:06 PM — Confirm</b>
+        <p>"Your day changed. Here's the new plan. Accept?"</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="sec-title">Prototype Stack</div>
+    <div class="stack">
+      <span>⚛️ React (Frontend)</span><span>⚡ FastAPI (Backend)</span><span>🗄️ SQLite (Database)</span>
+      <span>🎤 Whisper (STT)</span><span>🔊 TTS</span><span>🔒 Local-first · Encrypted</span>
+    </div>
+  </section>
+
+  <footer>Not just a schedule. An adaptive life. · AdaptiveOS</footer>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById('canvas3d');
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.z = 9;
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      function resize() {
+        const h = canvas.parentElement.clientHeight, w = canvas.parentElement.clientWidth;
+        renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+      }
+      resize(); window.addEventListener('resize', resize);
+
+      const group = new THREE.Group();
+      scene.add(group);
+
+      const colors = [0x7c6cff, 0xff5fa2, 0xffb35c, 0x00e0c8, 0x7c6cff, 0x00e0c8, 0xff5fa2];
+      const nodeCount = 7;
+      const nodes = [];
+      const radius = 3.4;
+      for (let i = 0; i < nodeCount; i++) {
+        const angle = (i / nodeCount) * Math.PI * 2;
+        const y = Math.sin(i * 1.7) * 1.2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const geo = new THREE.IcosahedronGeometry(0.32, 1);
+        const mat = new THREE.MeshStandardMaterial({ color: colors[i % colors.length], emissive: colors[i % colors.length], emissiveIntensity: 0.35, roughness: 0.3, metalness: 0.2 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, z);
+        group.add(mesh);
+        nodes.push(mesh);
+      }
+      // core
+      const coreGeo = new THREE.SphereGeometry(0.55, 32, 32);
+      const coreMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x7c6cff, emissiveIntensity: 0.6, roughness: 0.2 });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+      group.add(core);
+
+      // connecting lines: ring + spokes
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x4a4a7a, transparent: true, opacity: 0.6 });
+      const ringPts = nodes.map(n => n.position.clone()); ringPts.push(nodes[0].position.clone());
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ringPts), lineMat));
+      nodes.forEach(n => {
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), n.position.clone()]), lineMat));
+      });
+
+      // starfield
+      const starGeo = new THREE.BufferGeometry();
+      const starCount = 400;
+      const positions = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount * 3; i++) { positions[i] = (Math.random() - 0.5) * 40; }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x8888aa, size: 0.05 }));
+      scene.add(stars);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      const dl = new THREE.DirectionalLight(0xffffff, 1); dl.position.set(5, 5, 5); scene.add(dl);
+      const dl2 = new THREE.PointLight(0x7c6cff, 1.2, 20); dl2.position.set(-4, 2, 4); scene.add(dl2);
+
+      let autoRotate = true;
+      let dragging = false, prevX = 0, prevY = 0;
+      let rotX = 0.15, rotY = 0;
+
+      function setRot() { group.rotation.x = rotX; group.rotation.y = rotY; }
+
+      canvas.addEventListener('pointerdown', e => { dragging = true; autoRotate = false; prevX = e.clientX; prevY = e.clientY; });
+      window.addEventListener('pointerup', () => { dragging = false; });
+      window.addEventListener('pointermove', e => {
+        if (!dragging) return;
+        const dx = e.clientX - prevX, dy = e.clientY - prevY;
+        rotY += dx * 0.005; rotX += dy * 0.005;
+        prevX = e.clientX; prevY = e.clientY;
+        setRot();
+      });
+      canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        camera.position.z = Math.min(16, Math.max(5, camera.position.z + e.deltaY * 0.01));
+      }, { passive: false });
+
+      function animate(t) {
+        requestAnimationFrame(animate);
+        if (autoRotate) { rotY += 0.0025; setRot(); }
+        nodes.forEach((n, i) => { n.position.y += Math.sin(t * 0.001 + i) * 0.0015; });
+        core.scale.setScalar(1 + Math.sin(t * 0.002) * 0.06);
+        stars.rotation.y += 0.0002;
+        renderer.render(scene, camera);
+      }
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+
+</html>
