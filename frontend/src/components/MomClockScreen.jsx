@@ -70,6 +70,32 @@ export default function MomClockScreen({
     }
   };
 
+  // Web Audio API gentle harmonic morning chime
+  const playGentleChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const freqs = [523.25, 659.25, 783.99, 987.77, 1046.50]; // C5, E5, G5, B5, C6
+      freqs.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const noteStart = ctx.currentTime + i * 0.14;
+        gain.gain.setValueAtTime(0, noteStart);
+        gain.gain.linearRampToValueAtTime(0.15, noteStart + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 1.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(noteStart);
+        osc.stop(noteStart + 1.5);
+      });
+    } catch (e) {
+      // AudioContext muted/unsupported
+    }
+  };
+
   // Trigger Wake-Up / Alarm Mode (Section 14 requirement)
   const triggerAlarmMode = (alarm) => {
     const selected = alarm || alarms[0] || {
@@ -83,12 +109,15 @@ export default function MomClockScreen({
     setConflictResult(null);
     setSnoozeChecked(false);
 
+    // Play pleasant morning chime first
+    playGentleChime();
+
     const speech = selected.voicePrompt || `Good morning, ${persona.name}! It's ${selected.time}. Time to rise and shine. Let's start the day together.`;
     setWakeUpMessage(speech);
 
     setTimeout(() => {
       speakText(speech);
-    }, 400);
+    }, 750);
   };
 
   // Handle "I'm Up"
@@ -233,20 +262,60 @@ export default function MomClockScreen({
             </p>
           </div>
 
-          {/* Real-time Clock Card */}
-          <div className="bg-[#121224] border border-[#2a2a45] rounded-2xl p-4 sm:p-5 flex items-center gap-5 shadow-xl">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#ff5fa2] to-[#7c6cff] flex items-center justify-center p-[2px]">
-              <div className="w-full h-full bg-[#0a0a12] rounded-[14px] flex items-center justify-center">
-                <BellRing className="w-7 h-7 text-[#ff5fa2] animate-pulse" />
-              </div>
+          {/* Dual Analog & Digital Clock Card with Circadian Sky Theme */}
+          <div className="bg-[#121224] border border-[#2a2a45] rounded-3xl p-4 sm:p-5 flex items-center gap-5 shadow-2xl relative overflow-hidden group">
+            {/* Dynamic Circadian Ambient Glow */}
+            <div
+              className={`absolute inset-0 opacity-20 transition-all duration-1000 pointer-events-none ${
+                currentTime.getHours() >= 5 && currentTime.getHours() < 12
+                  ? 'bg-gradient-to-r from-[#ffaa55] via-[#ff5fa2] to-transparent' // Dawn / Morning
+                  : currentTime.getHours() >= 12 && currentTime.getHours() < 18
+                  ? 'bg-gradient-to-r from-[#00e0c8] via-[#3b82f6] to-transparent' // Midday
+                  : currentTime.getHours() >= 18 && currentTime.getHours() < 22
+                  ? 'bg-gradient-to-r from-[#f59e0b] via-[#a855f7] to-transparent' // Twilight
+                  : 'bg-gradient-to-r from-[#6366f1] via-[#1e1e38] to-transparent' // Midnight
+              }`}
+            />
+
+            {/* Analog Clock Dial */}
+            <div className="relative w-16 h-16 rounded-full bg-[#0a0a12] border-2 border-[#2a2a45] shadow-inner shrink-0 flex items-center justify-center">
+              {/* Hour hand */}
+              <div
+                className="absolute w-[3px] h-4 bg-white rounded-full origin-bottom"
+                style={{
+                  bottom: '50%',
+                  transform: `rotate(${((currentTime.getHours() % 12) * 30 + currentTime.getMinutes() * 0.5)}deg)`
+                }}
+              />
+              {/* Minute hand */}
+              <div
+                className="absolute w-[2px] h-5 bg-[#00e0c8] rounded-full origin-bottom"
+                style={{
+                  bottom: '50%',
+                  transform: `rotate(${currentTime.getMinutes() * 6}deg)`
+                }}
+              />
+              {/* Second hand */}
+              <div
+                className="absolute w-[1px] h-6 bg-[#ff5fa2] rounded-full origin-bottom"
+                style={{
+                  bottom: '50%',
+                  transform: `rotate(${currentTime.getSeconds() * 6}deg)`
+                }}
+              />
+              {/* Center pin */}
+              <div className="w-2 h-2 rounded-full bg-[#ff5fa2] z-10 shadow-sm" />
             </div>
+
             <div>
               <div className="font-mono text-3xl sm:text-4xl font-extrabold text-white tracking-wider flex items-baseline gap-1">
                 <span>{formattedHours}:{formattedMinutes}</span>
                 <span className="text-xs sm:text-sm text-[#00e0c8] font-mono">:{formattedSeconds}</span>
               </div>
-              <div className="text-[11px] text-[#a0a0c0] font-medium mt-0.5">
-                {formattedDate} · Current Active Window
+              <div className="text-[11px] text-[#a0a0c0] font-medium mt-0.5 flex items-center gap-2">
+                <span>{formattedDate}</span>
+                <span>•</span>
+                <span className="text-[#10b981] font-semibold">Circadian In-Sync</span>
               </div>
             </div>
           </div>
@@ -338,13 +407,24 @@ export default function MomClockScreen({
 
               {/* Bottom Actions */}
               <div className="mt-4 pt-3 border-t border-[#2a2a45]/60 flex items-center justify-between text-xs">
-                <button
-                  onClick={() => triggerAlarmMode(alarm)}
-                  className="text-xs font-semibold text-[#00e0c8] hover:text-[#00e0c8]/80 flex items-center gap-1"
-                >
-                  <Play className="w-3 h-3" />
-                  <span>Test Trigger</span>
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => triggerAlarmMode(alarm)}
+                    className="text-xs font-semibold text-[#00e0c8] hover:text-[#00e0c8]/80 flex items-center gap-1 transition-colors"
+                  >
+                    <Play className="w-3 h-3" />
+                    <span>Wake-Up</span>
+                  </button>
+
+                  <button
+                    onClick={() => playGentleChime()}
+                    className="text-xs font-medium text-[#a0a0c0] hover:text-[#ff5fa2] flex items-center gap-1 transition-colors"
+                    title="Preview Chime"
+                  >
+                    <Volume2 className="w-3 h-3" />
+                    <span>Chime</span>
+                  </button>
+                </div>
 
                 <button
                   onClick={() => handleDeleteAlarm(alarm.id)}

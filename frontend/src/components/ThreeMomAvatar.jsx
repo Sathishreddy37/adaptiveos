@@ -61,7 +61,7 @@ export default function ThreeMomAvatar({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
@@ -379,10 +379,22 @@ export default function ThreeMomAvatar({
 
     // Animation Loop variables
     let animationFrameId;
-    let clock = new THREE.Clock();
+    let startTime = performance.now();
     let blinkTimer = 0;
     let isBlinking = false;
     let walkPhase = 0;
+    let targetGazeX = 0;
+    let targetGazeY = 0;
+
+    // Pointer move listener for gentle natural eye/head tracking
+    const onPointerMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      targetGazeX = Math.max(-0.4, Math.min(0.4, x * 0.35));
+      targetGazeY = Math.max(-0.25, Math.min(0.25, y * 0.25));
+    };
+    window.addEventListener('pointermove', onPointerMove);
 
     // Wakeup entrance position animation
     if (mode === 'wakeup') {
@@ -392,7 +404,7 @@ export default function ThreeMomAvatar({
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-      const elapsed = clock.getElapsedTime();
+      const elapsed = (performance.now() - startTime) / 1000;
       const currentAnim = stateRef.current.animationState;
       const speaking = stateRef.current.isSpeaking;
 
@@ -417,19 +429,19 @@ export default function ThreeMomAvatar({
         }
       }
 
-      // 3. Speech Lip-Sync & Head Tilting
+      // 3. Speech Lip-Sync & Head Tilting with smooth cursor gaze tracking
       if (speaking) {
         // Mouth opens and closes rhythmically
         const mouthOpen = Math.abs(Math.sin(elapsed * 14)) * 1.5;
         mouthGroup.scale.set(1.0, 1.0 + mouthOpen, 1.0);
         // Head moves slightly while speaking
-        headGroup.rotation.y = Math.sin(elapsed * 3.5) * 0.08;
-        headGroup.rotation.x = Math.sin(elapsed * 4.2) * 0.05 + 0.03;
+        headGroup.rotation.y += (targetGazeX + Math.sin(elapsed * 3.5) * 0.08 - headGroup.rotation.y) * 0.08;
+        headGroup.rotation.x += (-targetGazeY + Math.sin(elapsed * 4.2) * 0.05 + 0.03 - headGroup.rotation.x) * 0.08;
         headGroup.rotation.z = Math.sin(elapsed * 2.5) * 0.03;
       } else {
         mouthGroup.scale.set(1.0, 1.0, 1.0);
-        headGroup.rotation.y = Math.sin(elapsed * 1.2) * 0.04;
-        headGroup.rotation.x = Math.sin(elapsed * 1.5) * 0.02;
+        headGroup.rotation.y += (targetGazeX + Math.sin(elapsed * 1.2) * 0.04 - headGroup.rotation.y) * 0.06;
+        headGroup.rotation.x += (-targetGazeY + Math.sin(elapsed * 1.5) * 0.02 - headGroup.rotation.x) * 0.06;
         headGroup.rotation.z = Math.sin(elapsed * 0.8) * 0.02;
       }
 
@@ -503,6 +515,7 @@ export default function ThreeMomAvatar({
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('pointermove', onPointerMove);
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Calendar,
@@ -15,8 +15,13 @@ import {
   BarChart,
   Shield,
   User,
-  ChevronDown
+  ChevronDown,
+  Search,
+  Volume2,
+  VolumeX,
+  Command
 } from 'lucide-react';
+import { playTap, toggleSound, isSoundMuted } from '../utils/sound';
 
 export default function Navbar({
   currentScreen,
@@ -26,8 +31,19 @@ export default function Navbar({
   onOpenLogs,
   pendingProposalCount,
   persona,
-  onOpenOnboarding
+  onOpenOnboarding,
+  onOpenCommandPalette
 }) {
+  const [muted, setMuted] = useState(isSoundMuted());
+
+  const handleToggleSound = () => {
+    const next = toggleSound();
+    setMuted(next);
+    if (!next) {
+      playTap();
+    }
+  };
+
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
@@ -42,12 +58,15 @@ export default function Navbar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0a0a12]/85 backdrop-blur-xl border-b border-[#2a2a45]">
+    <header className="sticky top-0 z-40 bg-[#0a0a12]/90 backdrop-blur-xl border-b border-[#2a2a45]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
-        {/* Left: Brand */}
+        {/* Left: Brand & Active Persona */}
         <div className="flex items-center gap-3">
           <div
-            onClick={() => setCurrentScreen('home')}
+            onClick={() => {
+              playTap();
+              setCurrentScreen('home');
+            }}
             className="flex items-center gap-2 cursor-pointer group shrink-0"
           >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#ff5fa2] via-[#7c6cff] to-[#00e0c8] p-[1.5px] shadow-lg shadow-[#ff5fa2]/15">
@@ -62,16 +81,19 @@ export default function Navbar({
               <div className="flex items-center gap-1.5 -mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00e0c8] animate-ping" />
                 <span className="text-[9px] font-mono tracking-wider uppercase text-[#a0a0c0]">
-                  7 Agents
+                  7 Agents Active
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Active Persona Pill / Switcher */}
+          {/* Active Persona Switcher Pill */}
           {persona && (
             <button
-              onClick={onOpenOnboarding}
+              onClick={() => {
+                playTap();
+                onOpenOnboarding();
+              }}
               className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#16162a] hover:bg-[#202038] border border-[#2a2a45] text-xs transition-colors"
               title="Click to change Persona or rerun 3D Onboarding Guide"
             >
@@ -86,48 +108,89 @@ export default function Navbar({
           )}
         </div>
 
-        {/* Center: Tabs */}
-        <nav className="hidden xl:flex items-center gap-1 bg-[#151527]/90 p-1.5 rounded-2xl border border-[#2a2a45]">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = currentScreen === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setCurrentScreen(item.id)}
-                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  active
-                    ? 'bg-gradient-to-r from-[#7c6cff] to-[#6366f1] text-white shadow-md shadow-[#7c6cff]/25'
-                    : 'text-[#a0a0c0] hover:text-white hover:bg-[#2a2a45]/50'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-[#ef4444] text-white animate-bounce">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        {/* Center: Command Search Bar & Desktop Navigation Tabs */}
+        <div className="flex items-center gap-2">
+          {/* Quick Command Palette Button */}
+          <button
+            onClick={() => {
+              playTap();
+              onOpenCommandPalette();
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#141428] hover:bg-[#1c1c38] border border-[#2a2a48] text-xs text-[#8e8eb0] hover:text-white transition-all shadow-inner group"
+            title="Press Cmd+K or Ctrl+K to open Command Palette"
+          >
+            <Search className="w-3.5 h-3.5 text-[#7c6cff] group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline font-medium">Quick actions...</span>
+            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-bold bg-[#1e1e36] text-[#b0b0d0] rounded border border-[#2a2a45]">
+              ⌘K
+            </kbd>
+          </button>
 
-        {/* Right: Quick Actions */}
+          {/* Navigation Items (Desktop) */}
+          <nav className="hidden xl:flex items-center gap-1 bg-[#151527]/90 p-1.5 rounded-2xl border border-[#2a2a45]">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = currentScreen === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    playTap();
+                    setCurrentScreen(item.id);
+                  }}
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-gradient-to-r from-[#7c6cff] to-[#6366f1] text-white shadow-md shadow-[#7c6cff]/25'
+                      : 'text-[#a0a0c0] hover:text-white hover:bg-[#2a2a45]/50'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-[#ef4444] text-white animate-bounce">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Right: Quick Controls */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Audio sound toggle button */}
+          <button
+            onClick={handleToggleSound}
+            title={muted ? "Unmute UI audio feedback" : "Mute UI audio feedback"}
+            className={`p-2 rounded-xl border transition-all ${
+              muted
+                ? 'bg-[#151527] text-[#6e6e88] border-[#2a2a45]'
+                : 'bg-[#7c6cff]/15 text-[#7c6cff] border-[#7c6cff]/40 shadow-sm'
+            }`}
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+
           {/* Section 5 Demo Button */}
           <button
-            onClick={onRunDemo}
+            onClick={() => {
+              playTap();
+              onRunDemo();
+            }}
             title="Run Section 5 scripted demo: 4:00 PM new assignment arrival"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-[#ff5fa2] to-[#7c6cff] text-white hover:opacity-95 shadow-md shadow-[#ff5fa2]/20 transition-transform active:scale-95"
           >
             <Play className="w-3.5 h-3.5 fill-white" />
-            <span className="hidden sm:inline">Run 4:00 PM Demo</span>
+            <span className="hidden sm:inline">4:00 PM Replan</span>
           </button>
 
           {/* Reset button */}
           <button
-            onClick={onResetSchedule}
+            onClick={() => {
+              playTap();
+              onResetSchedule();
+            }}
             title="Reset schedule to standard baseline state"
             className="p-2 rounded-xl text-[#a0a0c0] hover:text-white hover:bg-[#151527] border border-[#2a2a45] transition-colors"
           >
@@ -136,7 +199,10 @@ export default function Navbar({
 
           {/* Agent Decision Logs Button */}
           <button
-            onClick={onOpenLogs}
+            onClick={() => {
+              playTap();
+              onOpenLogs();
+            }}
             title="View 7-Agent Decision Logs & Audit Trail"
             className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium text-[#00e0c8] bg-[#00e0c8]/10 hover:bg-[#00e0c8]/20 border border-[#00e0c8]/30 transition-colors"
           >
@@ -166,7 +232,10 @@ export default function Navbar({
           return (
             <button
               key={item.id}
-              onClick={() => setCurrentScreen(item.id)}
+              onClick={() => {
+                playTap();
+                setCurrentScreen(item.id);
+              }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                 active ? 'bg-[#7c6cff] text-white' : 'text-[#a0a0c0] hover:text-white'
               }`}

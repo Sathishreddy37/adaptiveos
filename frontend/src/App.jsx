@@ -15,6 +15,7 @@ import OnboardingGuide from './components/OnboardingGuide';
 import DecisionLogModal from './components/DecisionLogModal';
 import PlanDiffModal from './components/PlanDiffModal';
 import DemoRunner from './components/DemoRunner';
+import CommandPalette from './components/CommandPalette';
 
 import { PERSONAS } from './data/personas';
 import {
@@ -23,6 +24,7 @@ import {
   fetchPendingProposals,
   triggerReplan
 } from './api';
+import { playMorningChime, playSuccess } from './utils/sound';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -35,6 +37,19 @@ export default function App() {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [selectedDiffProposal, setSelectedDiffProposal] = useState(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global keyboard shortcut listener for Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const refreshAll = async () => {
     try {
@@ -60,6 +75,7 @@ export default function App() {
     setSelectedPersonaKey(key);
     const p = PERSONAS[key] || PERSONAS.student;
     setSchedule({ blocks: p.scheduleBlocks });
+    playSuccess();
   };
 
   const handleReset = async () => {
@@ -78,7 +94,9 @@ export default function App() {
   const handleOnboardingComplete = ({ personaKey, formData }) => {
     setSelectedPersonaKey(personaKey);
     setIsOnboardingOpen(false);
+    localStorage.setItem('adaptiveos_onboarded_completed', 'true');
     setCurrentScreen('momclock'); // User requested: First page requirement guide, and next with mom clock!
+    playSuccess();
   };
 
   return (
@@ -93,6 +111,7 @@ export default function App() {
         pendingProposalCount={pendingProposals.length}
         persona={persona}
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -186,6 +205,19 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Global Command Palette (⌘K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigate={(screen) => setCurrentScreen(screen)}
+        onSelectPersona={handleSelectPersona}
+        onRunDemo={() => setIsDemoOpen(true)}
+        onResetSchedule={handleReset}
+        onOpenLogs={() => setIsLogsOpen(true)}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        onTestChime={playMorningChime}
+      />
 
       {/* Onboarding Guide Modal (First Page 3D Model Guide & Requirement Intake) */}
       {isOnboardingOpen && (
